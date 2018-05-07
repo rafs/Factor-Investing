@@ -8,6 +8,7 @@ Created on Tue Mar 20 12:13:57 2018
 import pandas as pd
 import numpy as np
 import math
+from datetime import datetime, timedelta
 
 def calculPerf(histoPTF, histoPrice):
     histoRTN = histoPrice / histoPrice.shift(1)
@@ -147,17 +148,15 @@ def lowVolStrategy(histoPrice):
 
 
 def forMyFriendBabil(histoPrice, histoWeight):
-    
     histoReturn = histoPrice/ histoPrice.shift(1)
     histoReturn  = histoReturn.iloc[histoReturn.index.get_loc(histoWeight.index[0].date(), method = "backfill"):,:]
     histoReturn = histoReturn.reset_index()
 #    histoPrice['ptfDate'] = histoWeight.index.get_loc(histoPrice['index'], method = 'pad')
-    histoReturn['ptfDate'] = histoReturn.apply(lambda x: histoWeight.index.get_loc(x['index'], method = 'pad'), axis = 1)
-    histoReturn = histoReturn.set_index("index")
-    histoReturn = histoReturn.groupby(histoReturn['ptfDate']).apply( lambda x: np.prod(x.iloc[:,:-1]))
-    print(histoReturn)
-#    print (histoPrice)
-#    print (histoPrice)
+    histoReturn['ptfDate'] = histoReturn.apply(lambda x: histoWeight.index[histoWeight.index.get_loc(x['index'], method = 'pad')], axis = 1)
+    histoReturn['ptfDate'] = histoReturn['ptfDate'].shift(1)
+    histoReturn = histoReturn.set_index("index")[1:]
+    histoReturn = histoReturn.groupby(histoReturn['ptfDate']).apply( lambda x: x.iloc.cumprod()*histoWeight.loc[x.iloc[-1]] if isinstance(x, float) else x)
+    print (histoReturn)
     
 dateparse = lambda x: pd.datetime.strptime(x, '%d/%m/%Y')
 #histoPrice = pd.read_csv("histoprice.csv",";", index_col = 0,parse_dates= True, date_parser=dateparse)
