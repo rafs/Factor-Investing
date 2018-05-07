@@ -151,13 +151,18 @@ def forMyFriendBabil(histoPrice, histoWeight):
     histoReturn = histoPrice/ histoPrice.shift(1)
     histoReturn  = histoReturn.iloc[histoReturn.index.get_loc(histoWeight.index[0].date(), method = "backfill"):,:]
     histoReturn = histoReturn.reset_index()
-#    histoPrice['ptfDate'] = histoWeight.index.get_loc(histoPrice['index'], method = 'pad')
+
     histoReturn['ptfDate'] = histoReturn.apply(lambda x: histoWeight.index[histoWeight.index.get_loc(x['index'], method = 'pad')], axis = 1)
     histoReturn['ptfDate'] = histoReturn['ptfDate'].shift(1)
+    # On enlève la première ligne après le shift
     histoReturn = histoReturn.set_index("index")[1:]
-    histoReturn = histoReturn.groupby(histoReturn['ptfDate']).apply( lambda x: x.iloc.cumprod()*histoWeight.loc[x.iloc[-1]] if isinstance(x, float) else x)
-    print (histoReturn)
-    
+    columnDateGroup = histoReturn.iloc[:,-1]
+    histoReturn = histoReturn.groupby(histoReturn['ptfDate']).apply( lambda x: x.iloc[:,:-1].cumprod(axis=0))
+    histoReturn["ptfDate"] = columnDateGroup
+    print(histoReturn)
+
+    histoReturn = histoReturn.apply(lambda x: x * histoWeight.loc[x.iloc[-1]], axis=1)
+    histoReturn.to_csv("historeturn.csv")
 dateparse = lambda x: pd.datetime.strptime(x, '%d/%m/%Y')
 #histoPrice = pd.read_csv("histoprice.csv",";", index_col = 0,parse_dates= True, date_parser=dateparse)
 
@@ -175,11 +180,11 @@ strategy2 = priceMomentumS2(histoPrice)
 strategyLS = priceMomentumLS(histoPrice)
 strategyLowVol = lowVolStrategy(histoPrice)
 
-forMyFriendBabil(histoPrice.copy(), strategyLS)
+forMyFriendBabil(histoPrice.copy(), strategy2)
 
 #
-#histoValuePtf = calculPerf(strategy2, histoPrice)
-##print (histoValuePtf)
+histoValuePtf = calculPerf(strategy2, histoPrice)
+print (histoValuePtf)
 #histoPerf = histoPerf.append(pd.Series([histoValuePtf.iloc[-1,0]]), ignore_index = True)
 #
 #histoValuePtf = calculPerf(strategyLS, histoPrice)
